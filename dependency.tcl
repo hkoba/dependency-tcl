@@ -18,35 +18,8 @@ snit::type Dependency {
 	if {[dict exists $myDeps $name]} {
 	    error "Node $name is multiply defined!"
 	}
-	dict set myDeps $name [dict create depends $depends \
-				   action $action]
-    }
-
-    method forget name {
-	if {![dict exists $myDeps $name]} {
-	    return 0
-	}
-	dict unset myDeps $name
-	return 1
-    }
-
-    method names {} {
-	dict keys $myDeps
-    }
-
-    method do-action name {
-	set deps [dict get $myDeps $name depends]
-	set map [list \
-		     \$@ $name \
-		     \$< [lindex $deps 0] \
-		     \$^ $deps]
-	set action [string map $map [dict get $myDeps $name action]]
-	if {!$options(-quiet)} {
-	    puts $action
-	}
-	if {!$options(-dryrun)} {
-	    apply [list {self} $action ::] $self
-	}
+	dict set myDeps $name \
+	    [dict create depends $depends action $action]
     }
 
     method update {name {visited ""}} {
@@ -64,10 +37,12 @@ snit::type Dependency {
 	    } elseif {$v == 1} {
 		error "Node $succ and $name are circularly defined!"
 	    }
-	    # 依存先が自分より若い = 自分も若返る必要が有る
 	    if {$options(-debug)} {
-		puts "$name-$succ=([expr {[$self age $name] - [$self age $succ]}])"
+		set diff [expr {[$self age $name] - [$self age $succ]}]
+		puts "$name-$succ=($diff)"
 	    }
+	    # If successor is younger than the target,
+	    # target should be refreshed.
 	    if {[$self age $succ] < [$self age $name]} {
 		incr nchanges
 	    }
@@ -81,6 +56,21 @@ snit::type Dependency {
 	return 0
     }
 
+    method do-action name {
+	set deps [dict get $myDeps $name depends]
+	set map [list \
+		     \$@ $name \
+		     \$< [lindex $deps 0] \
+		     \$^ $deps]
+	set action [string map $map [dict get $myDeps $name action]]
+	if {!$options(-quiet)} {
+	    puts $action
+	}
+	if {!$options(-dryrun)} {
+	    apply [list {self} $action ::] $self
+	}
+    }
+
     method age name {
 	if {[file exists $name]} {
 	    expr {1.0/[file mtime $name]}
@@ -91,6 +81,19 @@ snit::type Dependency {
 	}
     }
 
+    #----------------------------------------
+    method forget name {
+	if {![dict exists $myDeps $name]} {
+	    return 0
+	}
+	dict unset myDeps $name
+	return 1
+    }
+
+    method names {} {
+	dict keys $myDeps
+    }
+    #----------------------------------------
     proc dict-default {dict key default} {
 	if {[dict exists $dict $key]} {
 	    dict get $dict $key
