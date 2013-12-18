@@ -1,0 +1,104 @@
+#!/usr/bin/env tclsh
+
+package require fileutil
+
+package require tcltest
+namespace import tcltest::*
+
+set testScript [file normalize [info script]]
+
+test test-requires "tempdir" {
+    set d [makeDirectory [file tail $testScript]-[pid]]
+    configure -tmpdir $d
+    cd $d
+} ""
+
+test test-requires "prereq check for this test" {
+    expr {[exec which gcc] ne ""}
+} 1
+
+test load "Make sure it is loadable." {
+    source [file rootname $testScript].tcl
+} ""
+
+set pfx c1
+
+test $pfx-prepare "" {
+    makeFile "int main() {return 0;}" main.c
+    foreach k {a b c} {
+	makeFile "" $k.c
+	makeFile "" $k.h
+    }
+    proc cc args {exec gcc {*}$args}
+} ""
+
+test $pfx-create "create Dependency instance" {
+
+    Dependency dep
+
+} ::dep
+
+test $pfx-add "add a.o dependency" {
+
+    dep add a.o {a.c a.h} {cc -c $< -o $@}
+
+    dep names
+} [list a.o]
+
+test $pfx-add "add other dependencies" {
+
+    foreach k {b c} {
+	dep add $k.o "$k.c $k.h" {cc -c $< -o $@}
+    }
+    dep add main.o {main.c a.h b.h c.h} {cc -c $< -o $@}
+    dep add prog {main.o a.o b.o c.o} {cc $^ -o $@}
+
+    lsort [dep names]
+} [list a.o b.o c.o main.o prog]
+
+test $pfx-make "dryrun a.o" -body {
+    dep configure -dryrun yes
+
+    dep update a.o
+
+} -output "cc -c a.c -o a.o\n" -result 1
+
+
+test $pfx-make "real make: a.o" -body {
+    dep configure -dryrun no
+
+    dep update a.o
+
+    file exists a.o
+} -output "cc -c a.c -o a.o\n" -result 1
+
+test $pfx-make "dryrun prog" -body {
+    dep configure -dryrun yes
+
+    dep update prog
+
+} -output "cc -c main.c -o main.o
+cc -c b.c -o b.o
+cc -c c.c -o c.o
+cc main.o a.o b.o c.o -o prog
+" -result 1
+
+test $pfx-make "real make: prog" -body {
+    dep configure -dryrun no
+
+    dep update prog
+
+    file exists prog
+} -output "cc -c main.c -o main.o
+cc -c b.c -o b.o
+cc -c c.c -o c.o
+cc main.o a.o b.o c.o -o prog
+" -result 1
+
+test $pfx-cleanup "remove objs" -body {
+    foreach fn {main.o a.o b.o c.o prog} {
+	removeFile $fn
+    }
+}
+
+cleanupTests
