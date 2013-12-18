@@ -12,39 +12,35 @@ snit::type Dependency {
     option -dryrun no
     option -debug 0
 
-    variable myNodes -array {}
-    variable myActions -array {}
+    variable myDeps [dict create]
 
     method add {name depends {action ""}} {
-	set vn myNodes($name)
-	if {[info exists $vn]} {
+	if {[dict exists $myDeps $name]} {
 	    error "Node $name is multiply defined!"
 	}
-	set $vn $depends
-	set myActions($name) $action
+	dict set myDeps $name [dict create depends $depends \
+				   action $action]
     }
 
     method forget name {
-	set vn myNodes($name)
-	if {![info exists $vn]} {
+	if {![dict exists $myDeps $name]} {
 	    return 0
 	}
-
-	unset $vn
-	unset myActions($name)
+	dict unset myDeps $name
 	return 1
     }
 
     method names {} {
-	array names myNodes
+	dict keys $myDeps
     }
 
     method do-action name {
+	set deps [dict get $myDeps $name depends]
 	set map [list \
 		     \$@ $name \
-		     \$< [lindex $myNodes($name) 0] \
-		     \$^ $myNodes($name)]
-	set action [string map $map $myActions($name)]
+		     \$< [lindex $deps 0] \
+		     \$^ $deps]
+	set action [string map $map [dict get $myDeps $name action]]
 	if {!$options(-quiet)} {
 	    puts $action
 	}
@@ -54,15 +50,15 @@ snit::type Dependency {
     }
 
     method update {name {visited ""}} {
-	set vn myNodes($name)
 	$self age $name
-	if {![info exists $vn]} {
+	if {![dict exists $myDeps $name]} {
 	    return 0
 	}
 
 	set nchanges 0
 	dict set visited $name 1
-	foreach succ [set $vn] {
+	set depends [dict get $myDeps $name depends]
+	foreach succ $depends {
 	    if {[set v [dict-default $visited $succ 0]] == 0} {
 		$self update $succ $visited
 	    } elseif {$v == 1} {
@@ -78,18 +74,17 @@ snit::type Dependency {
 	}
 	dict set visited $name 2
 
-	if {$nchanges || [llength [set $vn]] == 0} {
+	if {$nchanges || [llength $depends] == 0} {
 	    $self do-action $name
 	    return 1
 	}
-
 	return 0
     }
 
     method age name {
 	if {[file exists $name]} {
 	    expr {1.0/[file mtime $name]}
-	} elseif {[info exists myNodes($name)]} {
+	} elseif {[dict exists $myDeps $name]} {
 	    return Inf
 	} else {
 	    error "Unknown node or file: $name"
@@ -107,5 +102,5 @@ snit::type Dependency {
 
 
 if {![info level] && [info script] eq $::argv0} {
-    
+    # XXX: to be written.
 }
