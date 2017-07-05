@@ -31,19 +31,19 @@ snit::type Dependency {
 	set nchanges 0
 	dict set visited $name 1
 	set depends [dict get $myDeps $name depends]
-	foreach succ $depends {
-	    if {[set v [dict-default $visited $succ 0]] == 0} {
-		$self update $succ $visited
+	foreach pred $depends {
+	    if {[set v [dict-default $visited $pred 0]] == 0} {
+		$self update $pred $visited
 	    } elseif {$v == 1} {
-		error "Node $succ and $name are circularly defined!"
+		error "Node $pred and $name are circularly defined!"
 	    }
 	    if {$options(-debug)} {
-		set diff [expr {[$self age $name] - [$self age $succ]}]
-		puts "$name-$succ=($diff)"
+		set diff [expr {[$self age $name] - [$self age $pred]}]
+		puts "$name-$pred=($diff)"
 	    }
-	    # If successor is younger than the target,
+	    # If predecessor is younger than the target,
 	    # target should be refreshed.
-	    if {[$self age $succ] < [$self age $name]} {
+	    if {[$self age $pred] < [$self age $name]} {
 		incr nchanges
 	    }
 	}
