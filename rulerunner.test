@@ -32,9 +32,9 @@ test $pfx-prepare "" {
     proc cc args {exec gcc {*}$args}
 } ""
 
-test $pfx-create "create Dependency instance" {
+test $pfx-create "create RuleRunner instance" {
 
-    Dependency dep
+    RuleRunner dep
 
 } ::dep
 

@@ -7,7 +7,7 @@
 
 package require snit
 
-snit::type Dependency {
+snit::type RuleRunner {
     option -quiet no
     option -dryrun no
     option -debug 0
