@@ -13,11 +13,14 @@ snit::type RuleRunner {
     option -dryrun no
     option -debug 0
 
-    typevariable ourRequiredKeysList [set KEYS [list depends action]]
-    option -known-keys $KEYS
+    option -known-keys ""; # For user extended keys
     variable myKnownKeysDict []
+    typevariable ourRequiredKeysList [set KEYS [list depends action]]
+    typevariable ourKnownKeysList [list {*}$KEYS age result]
 
     variable myDeps [dict create]
+
+    
 
     # For shorthand
     method add {name depends {action ""} args} {
@@ -48,7 +51,7 @@ snit::type RuleRunner {
         }
         set unknownKeys []
         if {$myKnownKeysDict eq ""} {
-            foreach k $options(-known-keys) {
+            foreach k [list {*}$options(-known-keys) {*}$ourKnownKeysList] {
                 dict set myKnownKeysDict $k 1
             }
         }
@@ -76,7 +79,7 @@ snit::type RuleRunner {
 	    if {[set v [dict-default $visited $pred 0]] == 0} {
 		$self update $pred $visited
 	    } elseif {$v == 1} {
-		error "Node $pred and $name are circularly defined!"
+		error "Rule $pred and $name are circularly defined!"
 	    }
 	    if {$options(-debug)} {
 		set diff [expr {[$self age $name] - [$self age $pred]}]
@@ -108,12 +111,21 @@ snit::type RuleRunner {
 	    puts $action
 	}
 	if {!$options(-dryrun)} {
-	    apply [list {self} $action ::] $self
+	    set resList [apply [list {self rule} $action ::] $self $name]
+            if {$resList ne ""} {
+                set rest [lassign $resList bool]
+                if {$bool} {
+                    dict set myDeps age [clock microseconds]
+                }
+                dict set myDeps result $rest
+            }
 	}
     }
 
     method age name {
-	if {[file exists $name]} {
+        if {[dict exists $myDeps $name age]} {
+            dict get $myDeps $name age
+        } elseif {[file exists $name]} {
 	    expr {1.0/[file mtime $name]}
 	} elseif {[dict exists $myDeps $name]} {
 	    return Inf
