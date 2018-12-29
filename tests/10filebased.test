@@ -18,7 +18,7 @@ test test-requires "prereq check for this test" {
 } 1
 
 test load "Make sure it is loadable." {
-    source [file rootname $testScript].tcl
+    source [file dirname [file dirname $testScript]]/rulerunner.tcl
 } ""
 
 set pfx c1
