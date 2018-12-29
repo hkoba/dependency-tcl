@@ -8,7 +8,7 @@
 package require snit
 package require struct::list
 
-snit::type RuleRunner {
+snit::type TaskRunner {
     option -quiet no
     option -dryrun no
     option -debug 0
@@ -24,21 +24,21 @@ snit::type RuleRunner {
 
     # For shorthand
     method add {name depends {action ""} args} {
-        $self rule add $name depends $depends action $action {*}$args
+        $self task add $name depends $depends action $action {*}$args
     }
 
-    method {rule add} {name args} {
+    method {task add} {name args} {
 	if {[dict exists $myDeps $name]} {
-	    error "Rule $name is multiply defined!"
+	    error "Task $name is multiply defined!"
 	}
         set dict [dict create {*}$args]
-        if {[set errors [$self rule verify $dict]] ne ""} {
-            error "Rule $name has error: $errors"
+        if {[set errors [$self task verify $dict]] ne ""} {
+            error "Task $name has error: $errors"
         }
 	dict set myDeps $name $dict
     }
 
-    method {rule verify} dict {
+    method {task verify} dict {
         set errors []
         set missingKeys []
         foreach k $ourRequiredKeysList {
@@ -79,7 +79,7 @@ snit::type RuleRunner {
 	    if {[set v [dict-default $visited $pred 0]] == 0} {
 		$self update $pred $visited
 	    } elseif {$v == 1} {
-		error "Rule $pred and $name are circularly defined!"
+		error "Task $pred and $name are circularly defined!"
 	    }
 	    if {$options(-debug)} {
 		set diff [expr {[$self age $name] - [$self age $pred]}]
@@ -111,7 +111,7 @@ snit::type RuleRunner {
 	    puts $action
 	}
 	if {!$options(-dryrun)} {
-	    set resList [apply [list {self rule} $action ::] $self $name]
+	    set resList [apply [list {self task} $action ::] $self $name]
             if {$resList ne ""} {
                 set rest [lassign $resList bool]
                 if {$bool} {

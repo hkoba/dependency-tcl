@@ -18,7 +18,7 @@ test test-requires "prereq check for this test" {
 } 1
 
 test load "Make sure it is loadable." {
-    source [file dirname [file dirname $testScript]]/rulerunner.tcl
+    source [file dirname [file dirname $testScript]]/taskrunner.tcl
 } ""
 
 set pfx c1
@@ -32,9 +32,9 @@ test $pfx-prepare "" {
     proc cc args {exec gcc {*}$args}
 } ""
 
-test $pfx-create "create RuleRunner instance" {
+test $pfx-create "create TaskRunner instance" {
 
-    RuleRunner dep
+    TaskRunner dep
 
 } ::dep
 
