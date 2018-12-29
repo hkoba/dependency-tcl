@@ -6,20 +6,61 @@
 # http://www.cs.bell-labs.com/cm/cs/who/bwk/awkcode.txt
 
 package require snit
+package require struct::list
 
 snit::type RuleRunner {
     option -quiet no
     option -dryrun no
     option -debug 0
 
+    typevariable ourRequiredKeysList [set KEYS [list depends action]]
+    option -known-keys $KEYS
+    variable myKnownKeysDict []
+
     variable myDeps [dict create]
 
-    method add {name depends {action ""}} {
+    # For shorthand
+    method add {name depends {action ""} args} {
+        $self rule add $name depends $depends action $action {*}$args
+    }
+
+    method {rule add} {name args} {
 	if {[dict exists $myDeps $name]} {
-	    error "Node $name is multiply defined!"
+	    error "Rule $name is multiply defined!"
 	}
-	dict set myDeps $name \
-	    [dict create depends $depends action $action]
+        set dict [dict create {*}$args]
+        if {[set errors [$self rule verify $dict]] ne ""} {
+            error "Rule $name has error: $errors"
+        }
+	dict set myDeps $name $dict
+    }
+
+    method {rule verify} dict {
+        set errors []
+        set missingKeys []
+        foreach k $ourRequiredKeysList {
+            if {![dict exists $dict $k]} {
+                lappend missingKeys $k
+            }
+        }
+        if {$missingKeys ne ""} {
+            lappend errors "Mandatory keys are missing: $missingKeys"
+        }
+        set unknownKeys []
+        if {$myKnownKeysDict eq ""} {
+            foreach k $options(-known-keys) {
+                dict set myKnownKeysDict $k 1
+            }
+        }
+        foreach k [dict keys $dict] {
+            if {![dict exists $myKnownKeysDict $k]} {
+                lappend unknownKeys $k
+            }
+        }
+        if {$unknownKeys ne ""} {
+            lappend errors "Unknown keys: $unknownKeys"
+        }
+        set errors
     }
 
     method update {name {visited ""}} {
