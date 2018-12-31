@@ -12,6 +12,12 @@ foreach k {b c} {
 dep add main.o {main.c a.h b.h c.h} {cc -c $< -o $@}
 dep add prog {main.o a.o b.o c.o} {cc $^ -o $@}
 
+# You can extend TaskRunner here like this.
+snit::method TaskRunner hello args {
+    puts [list HELLO $args]
+    return OK
+}
+
 if {[dep cget -debug]} {
     puts [list ::argv $::argv]
     
