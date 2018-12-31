@@ -35,6 +35,17 @@ snit::type TaskRunner {
         }
     }
 
+    # Define instance specific method. This heavyly depends on internals of snit.
+    method {method} {name argList body} {
+        set map [namespace ensemble configure $self -map]
+        set baseArgs [lrange [dict get $map configurelist] 1 end]
+        set proc [list ::apply [list [list type selfns win self {*}$argList] \
+                                  $body] \
+                      {*}$baseArgs]
+        namespace ensemble configure $self \
+            -map [list {*}$map $name $proc]
+    }
+
     # wrapper for dryrun
     method run {cmd args} {
 	if {!$options(-quiet)} {

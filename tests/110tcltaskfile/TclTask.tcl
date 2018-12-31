@@ -18,6 +18,12 @@ snit::method TaskRunner hello args {
     return OK
 }
 
+# namespace ensemble configure dep -map \
+#     [list {*}[namespace ensemble configure dep -map] \
+#          hello2 [list apply [list {type selfns win self args} {
+#              puts [list HELLO $args]
+#              return OK
+#          }] {*}[lrange [dict get [namespace ensemble configure dep -map] configurelist] 1 end]]]
 if {[dep cget -debug]} {
     puts [list ::argv $::argv]
     
