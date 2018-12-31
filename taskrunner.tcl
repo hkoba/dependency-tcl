@@ -21,6 +21,20 @@ snit::type TaskRunner {
 
     variable myDeps [dict create]
 
+    #----------------------------------------
+    method dispatch {argList defaultCommand args} {
+        if {[llength $args] % 2 != 0} {
+            error "Odd number of dispatch extension list!"
+        }
+        if {$argList eq ""} {
+            uplevel 1 $defaultCommand
+        } elseif {[dict exists $args [lindex $argList 0]]} {
+            uplevel 1 [dict get $args [lindex $argList 0]]
+        } else {
+            puts [$self {*}$argList]
+        }
+    }
+
     variable myLogUpdatedList []
     method {loglist updated} {} {
         set myLogUpdatedList
@@ -28,6 +42,14 @@ snit::type TaskRunner {
 
     method {target list} {} {
         dict keys $myDeps
+    }
+
+    # synonyms of [$self target dependency $target]
+    method {target deps} target {$self target dependency $target}
+    method {dependency list} target {$self target dependency $target}
+
+    method {target dependency} target {
+        dict get $myDeps $target depends
     }
 
     # For shorthand
@@ -76,7 +98,7 @@ snit::type TaskRunner {
 
     method update {name {visited ""}} {
         if {$visited eq ""} {
-            $self forget-log
+            $self reset
             if {$options(-debug)} {
                 puts $options(-debug-fh) [list deps: $myDeps]
             }
@@ -120,7 +142,7 @@ snit::type TaskRunner {
 	return 0
     }
 
-    method forget-log {} {
+    method reset {} {
         set myLogUpdatedList []
         foreach target [dict keys $myDeps] {
             dict unset myDeps $target age
@@ -270,7 +292,10 @@ if {![info level] && [info script] eq $::argv0} {
         if {![file exists $fileName]} {
             error "Can't find $fileName"
         }
-        puts "sourcing $fileName"
+        dep configurelist [TaskRunner::parsePosixOpts ::argv]
+        if {[dep cget -debug]} {
+            puts "sourcing $fileName"
+        }
         source $fileName
     }}
 }

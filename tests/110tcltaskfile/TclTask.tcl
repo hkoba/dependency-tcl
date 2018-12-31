@@ -12,18 +12,38 @@ foreach k {b c} {
 dep add main.o {main.c a.h b.h c.h} {cc -c $< -o $@}
 dep add prog {main.o a.o b.o c.o} {cc $^ -o $@}
 
-puts [list ::argv $::argv]
-
-if {$::argv eq ""} {
-    dep update prog
-
-} else {
-    switch [lindex $::argv 0] {
-        clean {
-            file delete {*}[dep target list]
-        }
-        default {
-            error "No such command: $::argv"
-        }
+if {[dep cget -debug]} {
+    puts [list ::argv $::argv]
+    
+    puts [list targets: [dep target list]]
+    
+    foreach t [dep target list] {
+        puts [list dependency of $t: {*}[dep dependency list $t]]
     }
 }
+
+dep dispatch $::argv {
+
+    dep update prog
+
+} clean {
+
+    file delete {*}[dep target list]
+
+}
+
+# Equivalent code of [dep dispatch ...]:
+# 
+# if {$::argv eq ""} {
+#      dep update prog
+# 
+# } else {
+#     switch [lindex $::argv 0] {
+#         clean {
+#             file delete {*}[dep target list]
+#         }
+#         default {
+#             puts [dep {*}$::argv]
+#         }
+#     }
+#  }
