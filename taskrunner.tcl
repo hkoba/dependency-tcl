@@ -242,9 +242,35 @@ snit::type TaskRunner {
 	    set default
 	}
     }
+    proc parsePosixOpts {varName {dict {}}} {
+        upvar 1 $varName opts
+
+        for {} {[llength $opts]
+                && [regexp {^--?([\w\-]+)(?:(=)(.*))?} [lindex $opts 0] \
+                        -> name eq value]} {set opts [lrange $opts 1 end]} {
+            if {$eq eq ""} {
+                set value 1
+            }
+            dict set dict -$name $value
+        }
+        set dict
+    }
+
 }
 
 
 if {![info level] && [info script] eq $::argv0} {
-    # XXX: to be written.
+    apply {{} {
+        TaskRunner dep {*}[TaskRunner::parsePosixOpts ::argv]
+        if {[llength $::argv]} {
+            set ::argv [lassign $::argv fileName]
+        } else {
+            set fileName TclTask.tcl
+        }
+        if {![file exists $fileName]} {
+            error "Can't find $fileName"
+        }
+        puts "sourcing $fileName"
+        source $fileName
+    }}
 }
