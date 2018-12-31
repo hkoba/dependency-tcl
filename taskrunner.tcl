@@ -35,6 +35,21 @@ snit::type TaskRunner {
         }
     }
 
+    # wrapper for dryrun
+    method run {cmd args} {
+	if {!$options(-quiet)} {
+	    puts $options(-debug-fh) "$cmd $args"
+	}
+	if {$options(-dryrun)} {
+	    return
+	}
+	if {$cmd eq "self"} {
+	    uplevel 1 [list $self {*}$args]
+	} else {
+	    uplevel 1 [list $cmd {*}$args]
+	}
+    }
+
     variable myLogUpdatedList []
     method {loglist updated} {} {
         set myLogUpdatedList

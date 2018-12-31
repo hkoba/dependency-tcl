@@ -34,7 +34,7 @@ dep dispatch $::argv {
 
 } clean {
 
-    file delete {*}[dep target list]
+    dep run file delete {*}[dep target list]
 
 }
 
