@@ -1,0 +1,71 @@
+#!/usr/bin/env tclsh
+
+package require fileutil
+
+package require tcltest
+namespace import tcltest::*
+
+set testScript [file normalize [info script]]
+
+test load "Make sure it is loadable." {
+    source [file dirname [file dirname $testScript]]/taskrunner.tcl
+} ""
+
+
+set THEME onmemory
+set C 0
+
+test $THEME-basic-[incr C] "target add -> target list" {
+
+    TaskRunner dep -quiet yes
+
+    dep target add varX depends {} check {
+        info exists ::varX
+    } action {
+        set ::varX [incr ::actionCount(varX)]
+    }
+
+    dep target add varY depends {} check {
+        info exists ::varY
+    } action {
+        incr ::actionCount(varY)
+        incr ::varY 10
+    }
+
+    dep target list
+
+} {varX varY}
+
+
+test $THEME-basic-[incr C] "target update" {
+
+    dep target add varZ depends {varX varY} check {
+        info exists ::varZ
+    } action {
+        incr ::actionCount(varZ)
+        set ::varZ [expr {$::varX + $::varY}]
+    }
+
+    dep update varZ
+    
+    set varZ
+
+} 11
+
+test $THEME-basic-[incr C] "target update on up-to-date target" {
+    dep update varZ
+    
+    list $varZ [lsort -stride 2 [array get ::actionCount]]
+
+} {11 {varX 1 varY 1 varZ 1}}
+
+test $THEME-basic-[incr C] "target update on dependency" {
+
+    unset ::varX
+    unset ::varZ; # これも手で下げる必要が有る！
+
+    dep update varZ
+    
+    list $varZ [lsort -stride 2 [array get ::actionCount]]
+
+} {12 {varX 2 varY 1 varZ 2}}

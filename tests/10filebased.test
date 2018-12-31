@@ -95,6 +95,30 @@ cc -c c.c -o c.o
 cc main.o a.o b.o c.o -o prog
 " -result 1
 
+test $pfx-make-log "run log" -body {
+    llength [dep loglist updated]
+} -result 4
+
+test $pfx-make "real make: prog" -body {
+
+    after [expr {1000 - [clock milliseconds] % 1000}]
+
+    # XXX: -debug affects -output
+    # dep configure -debug [info exists ::env(DEBUG)]
+
+    makeFile "/**/" b.c
+
+    dep update prog
+
+    dep loglist updated
+} -result [list b.o prog] -output "cc -c b.c -o b.o
+cc main.o a.o b.o c.o -o prog
+"
+
+test $pfx-rebuild-log "run log after rebuild" -body {
+    llength [dep loglist updated]
+} -result 2
+
 test $pfx-cleanup "remove objs" -body {
     foreach fn {main.o a.o b.o c.o prog} {
 	removeFile $fn
