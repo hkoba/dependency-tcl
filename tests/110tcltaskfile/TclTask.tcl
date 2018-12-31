@@ -1,8 +1,6 @@
 #!/usr/bin/env taskrunner.tcl
 # -*- coding: utf-8 -*-
 
-puts "OK"
-
 proc cc args {exec gcc {*}$args}
 
 dep add a.o {a.c a.h} {cc -c $< -o $@}
