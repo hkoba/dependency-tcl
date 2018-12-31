@@ -6,7 +6,7 @@ proc cc args {exec gcc {*}$args}
 dep add a.o {a.c a.h} {cc -c $< -o $@}
 
 foreach k {b c} {
-    dep add $k.o "$k.c $k.h" {cc -c $< -o $@}
+    dep add $k.o [list $k.c $k.h] {cc -c $< -o $@}
 }
 
 dep add main.o {main.c a.h b.h c.h} {cc -c $< -o $@}
