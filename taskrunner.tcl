@@ -67,7 +67,6 @@ snit::type TaskRunner {
     }
 
     method update {name {visited ""}} {
-	$self age $name
 	if {![dict exists $myDeps $name]} {
 	    return 0
 	}
